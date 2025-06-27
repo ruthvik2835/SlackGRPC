@@ -73,6 +73,12 @@ class ProcessorServicer(slackbot_pb2_grpc.ProcessorServicer):
         """
         logging.info(f"Processor service received message: '{request.text}' and adding it to the queue.")
         message_queue.put(request)
+        text="Message received! I'm working on it and will get back to you shortly."
+        send_final_reply(
+            channel=request.channel,
+            thread_ts=request.thread_ts,
+            text=text
+        )
         return slackbot_pb2.ProcessResponse()
 
 def serve():

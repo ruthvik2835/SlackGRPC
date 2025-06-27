@@ -44,7 +44,7 @@ class NotifierServicer(slackbot_pb2_grpc.NotifierServicer):
                 thread_ts=request.thread_ts,
                 text=request.text
             )
-            logging.info("Successfully posted final reply to Slack.")
+            logging.info("NOTIFIER: Successfully posted final reply to Slack.")
             return slackbot_pb2.ReplyResponse(ok=True)
         except SlackApiError as e:
             logging.error(f"Failed to post Slack message via notifier: {e.response['error']}")
