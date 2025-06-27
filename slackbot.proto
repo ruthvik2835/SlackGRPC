@@ -1,33 +1,43 @@
-// slackbot.proto
-// Define the syntax version we're using.
 syntax = "proto3";
 
-// The package name helps prevent naming conflicts.
 package slackbot;
 
-// The service definition for our Slack Bot.
-// It defines a single method for handling messages.
-service SlackBot {
-  // Receives a message from Slack, processes it, and returns a reply.
-  rpc HandleMessage (MessageRequest) returns (MessageResponse);
+// Service running on the main processing server
+// The gateway is the CLIENT of this service.
+service Processor {
+  // Sends a message to be processed asynchronously.
+  // This is a "fire-and-forget" call from the gateway's perspective.
+  rpc ProcessMessage(ProcessRequest) returns (ProcessResponse);
 }
 
-// The request message containing all the necessary data from a Slack event.
-message MessageRequest {
+message ProcessRequest {
   string text = 1;
   string channel = 2;
-  string ts = 3;
-  // thread_ts will be an empty string if the message is not in a thread.
-  string thread_ts = 4;
+  string ts = 3;      // Original message timestamp
+  string thread_ts = 4; // Thread to reply in
   string user = 5;
 }
 
-// The response message containing the text to be sent back to Slack.
-message MessageResponse {
-  // The text that the bot should reply with.
-  string reply_text = 1;
-  // A flag to indicate if a reply should be sent at all.
-  bool should_reply = 2;
+// An empty response to acknowledge receipt of the processing request.
+message ProcessResponse {}
+
+
+// Service running on the HTTP Gateway
+// The processing server is the CLIENT of this service.
+service Notifier {
+  // Sends the final reply back to the gateway to be posted on Slack.
+  rpc PostReply(ReplyRequest) returns (ReplyResponse);
+}
+
+message ReplyRequest {
+  string channel = 1;
+  string thread_ts = 2;
+  string text = 3;
+}
+
+// A response to acknowledge if the message was posted successfully.
+message ReplyResponse {
+  bool ok = 1;
 }
 
 

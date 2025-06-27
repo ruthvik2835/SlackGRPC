@@ -25,9 +25,9 @@ if _version_not_supported:
     )
 
 
-class SlackBotStub(object):
-    """The service definition for our Slack Bot.
-    It defines a single method for handling messages.
+class ProcessorStub(object):
+    """Service running on the main processing server
+    The gateway is the CLIENT of this service.
     """
 
     def __init__(self, channel):
@@ -36,48 +36,49 @@ class SlackBotStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.HandleMessage = channel.unary_unary(
-                '/slackbot.SlackBot/HandleMessage',
-                request_serializer=slackbot__pb2.MessageRequest.SerializeToString,
-                response_deserializer=slackbot__pb2.MessageResponse.FromString,
+        self.ProcessMessage = channel.unary_unary(
+                '/slackbot.Processor/ProcessMessage',
+                request_serializer=slackbot__pb2.ProcessRequest.SerializeToString,
+                response_deserializer=slackbot__pb2.ProcessResponse.FromString,
                 _registered_method=True)
 
 
-class SlackBotServicer(object):
-    """The service definition for our Slack Bot.
-    It defines a single method for handling messages.
+class ProcessorServicer(object):
+    """Service running on the main processing server
+    The gateway is the CLIENT of this service.
     """
 
-    def HandleMessage(self, request, context):
-        """Receives a message from Slack, processes it, and returns a reply.
+    def ProcessMessage(self, request, context):
+        """Sends a message to be processed asynchronously.
+        This is a "fire-and-forget" call from the gateway's perspective.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_SlackBotServicer_to_server(servicer, server):
+def add_ProcessorServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'HandleMessage': grpc.unary_unary_rpc_method_handler(
-                    servicer.HandleMessage,
-                    request_deserializer=slackbot__pb2.MessageRequest.FromString,
-                    response_serializer=slackbot__pb2.MessageResponse.SerializeToString,
+            'ProcessMessage': grpc.unary_unary_rpc_method_handler(
+                    servicer.ProcessMessage,
+                    request_deserializer=slackbot__pb2.ProcessRequest.FromString,
+                    response_serializer=slackbot__pb2.ProcessResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'slackbot.SlackBot', rpc_method_handlers)
+            'slackbot.Processor', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('slackbot.SlackBot', rpc_method_handlers)
+    server.add_registered_method_handlers('slackbot.Processor', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class SlackBot(object):
-    """The service definition for our Slack Bot.
-    It defines a single method for handling messages.
+class Processor(object):
+    """Service running on the main processing server
+    The gateway is the CLIENT of this service.
     """
 
     @staticmethod
-    def HandleMessage(request,
+    def ProcessMessage(request,
             target,
             options=(),
             channel_credentials=None,
@@ -90,9 +91,88 @@ class SlackBot(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/slackbot.SlackBot/HandleMessage',
-            slackbot__pb2.MessageRequest.SerializeToString,
-            slackbot__pb2.MessageResponse.FromString,
+            '/slackbot.Processor/ProcessMessage',
+            slackbot__pb2.ProcessRequest.SerializeToString,
+            slackbot__pb2.ProcessResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class NotifierStub(object):
+    """Service running on the HTTP Gateway
+    The processing server is the CLIENT of this service.
+    """
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.PostReply = channel.unary_unary(
+                '/slackbot.Notifier/PostReply',
+                request_serializer=slackbot__pb2.ReplyRequest.SerializeToString,
+                response_deserializer=slackbot__pb2.ReplyResponse.FromString,
+                _registered_method=True)
+
+
+class NotifierServicer(object):
+    """Service running on the HTTP Gateway
+    The processing server is the CLIENT of this service.
+    """
+
+    def PostReply(self, request, context):
+        """Sends the final reply back to the gateway to be posted on Slack.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_NotifierServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'PostReply': grpc.unary_unary_rpc_method_handler(
+                    servicer.PostReply,
+                    request_deserializer=slackbot__pb2.ReplyRequest.FromString,
+                    response_serializer=slackbot__pb2.ReplyResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'slackbot.Notifier', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('slackbot.Notifier', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class Notifier(object):
+    """Service running on the HTTP Gateway
+    The processing server is the CLIENT of this service.
+    """
+
+    @staticmethod
+    def PostReply(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/slackbot.Notifier/PostReply',
+            slackbot__pb2.ReplyRequest.SerializeToString,
+            slackbot__pb2.ReplyResponse.FromString,
             options,
             channel_credentials,
             insecure,

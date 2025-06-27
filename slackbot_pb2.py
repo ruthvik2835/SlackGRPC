@@ -24,17 +24,23 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0eslackbot.proto\x12\x08slackbot\"\\\n\x0eMessageRequest\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x0f\n\x07\x63hannel\x18\x02 \x01(\t\x12\n\n\x02ts\x18\x03 \x01(\t\x12\x11\n\tthread_ts\x18\x04 \x01(\t\x12\x0c\n\x04user\x18\x05 \x01(\t\";\n\x0fMessageResponse\x12\x12\n\nreply_text\x18\x01 \x01(\t\x12\x14\n\x0cshould_reply\x18\x02 \x01(\x08\x32P\n\x08SlackBot\x12\x44\n\rHandleMessage\x12\x18.slackbot.MessageRequest\x1a\x19.slackbot.MessageResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0eslackbot.proto\x12\x08slackbot\"\\\n\x0eProcessRequest\x12\x0c\n\x04text\x18\x01 \x01(\t\x12\x0f\n\x07\x63hannel\x18\x02 \x01(\t\x12\n\n\x02ts\x18\x03 \x01(\t\x12\x11\n\tthread_ts\x18\x04 \x01(\t\x12\x0c\n\x04user\x18\x05 \x01(\t\"\x11\n\x0fProcessResponse\"@\n\x0cReplyRequest\x12\x0f\n\x07\x63hannel\x18\x01 \x01(\t\x12\x11\n\tthread_ts\x18\x02 \x01(\t\x12\x0c\n\x04text\x18\x03 \x01(\t\"\x1b\n\rReplyResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\x32R\n\tProcessor\x12\x45\n\x0eProcessMessage\x12\x18.slackbot.ProcessRequest\x1a\x19.slackbot.ProcessResponse2H\n\x08Notifier\x12<\n\tPostReply\x12\x16.slackbot.ReplyRequest\x1a\x17.slackbot.ReplyResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'slackbot_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_MESSAGEREQUEST']._serialized_start=28
-  _globals['_MESSAGEREQUEST']._serialized_end=120
-  _globals['_MESSAGERESPONSE']._serialized_start=122
-  _globals['_MESSAGERESPONSE']._serialized_end=181
-  _globals['_SLACKBOT']._serialized_start=183
-  _globals['_SLACKBOT']._serialized_end=263
+  _globals['_PROCESSREQUEST']._serialized_start=28
+  _globals['_PROCESSREQUEST']._serialized_end=120
+  _globals['_PROCESSRESPONSE']._serialized_start=122
+  _globals['_PROCESSRESPONSE']._serialized_end=139
+  _globals['_REPLYREQUEST']._serialized_start=141
+  _globals['_REPLYREQUEST']._serialized_end=205
+  _globals['_REPLYRESPONSE']._serialized_start=207
+  _globals['_REPLYRESPONSE']._serialized_end=234
+  _globals['_PROCESSOR']._serialized_start=236
+  _globals['_PROCESSOR']._serialized_end=318
+  _globals['_NOTIFIER']._serialized_start=320
+  _globals['_NOTIFIER']._serialized_end=392
 # @@protoc_insertion_point(module_scope)

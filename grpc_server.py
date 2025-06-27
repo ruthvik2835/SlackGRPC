@@ -1,104 +1,100 @@
-# grpc_server.py
-import os
+# processing_server.py
 import logging
+import time
+import queue
+import threading
 from concurrent import futures
 
 import grpc
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
 
 import slackbot_pb2
 import slackbot_pb2_grpc
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 logging.basicConfig(level=logging.DEBUG)
+GATEWAY_NOTIFIER_ADDRESS = "localhost:50052" # The gRPC server on the gateway
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+message_queue = queue.Queue()
 
-
-message_store = {}
-slack_client = WebClient(token=BOT_TOKEN)
-
-
-# --- gRPC Servicer Implementation ---
-class SlackBotServicer(slackbot_pb2_grpc.SlackBotServicer):
+def send_final_reply(channel, thread_ts, text):
     """
-    Implements the SlackBot gRPC service.
+    Calls the Notifier service on the HTTP gateway to post the final message.
     """
+    logging.info("Attempting to send final reply back to gateway...")
+    try:
+        with grpc.insecure_channel(GATEWAY_NOTIFIER_ADDRESS) as grpc_channel:
+            stub = slackbot_pb2_grpc.NotifierStub(grpc_channel)
+            request = slackbot_pb2.ReplyRequest(
+                channel=channel,
+                thread_ts=thread_ts,
+                text=text
+            )
+            response = stub.PostReply(request)
+            if response.ok:
+                logging.info("Successfully sent final reply to gateway.")
+            else:
+                logging.error("Gateway reported an error posting the reply.")
+    except grpc.RpcError as e:
+        logging.error(f"gRPC Error: Could not send final reply to gateway. {e}")
 
-    def HandleMessage(self, request, context):
-        """
-        Processes an incoming message request and determines the appropriate response.
-        """
-        message_text = request.text.strip()
-        is_in_thread = bool(request.thread_ts)  # Check if the message is in a thread
-        
-        logging.info(f"gRPC Server received message: '{message_text}'")
-
-        reply_text = ""
-        should_reply = False
-
-        # If the message is a duplicate and NOT in a thread, point to the original.
-        if message_text in message_store and not is_in_thread:
-            try:
-                original_message_info = message_store[message_text]
-                original_ts = original_message_info["ts"]
-                original_channel = original_message_info["channel"]
-                
-                # Use the Slack client to get a permalink to the original message.
-                permalink_response = slack_client.chat_getPermalink(
-                    channel=original_channel,
-                    message_ts=original_ts
-                )
-                permalink = permalink_response["permalink"]
-                
-                reply_text = f"I've seen this message before! You can find the original here: {permalink}"
-                should_reply = True
-                logging.info(f"Found duplicate. Responding with link: {permalink}")
-
-            except SlackApiError as e:
-                logging.error(f"Error getting permalink: {e.response['error']}")
-                # Fallback reply if the API call fails
-                reply_text = "I've seen that message before, but I couldn't get the link."
-                should_reply = True
-
-        # If it's a new message, store it and craft a welcome reply.
-        else:
-            # Only store the message if it's not already there.
-            if message_text not in message_store:
-                 logging.info(f"Storing new message: '{message_text}'")
-                 message_store[message_text] = {
-                    "ts": request.ts,
-                    "channel": request.channel
-                 }
+# --- Worker Thread ---
+def process_message_queue():
+    """
+    Worker function that processes messages from the queue.
+    """
+    while True:
+        try:
+            # Get a message from the queue. This is a ProcessRequest object.
+            request = message_queue.get() 
             
-            # This is the logic for the simple "Hi there" response for new messages
-            reply_text = f"Hi there, <@{request.user}>!"
-            should_reply = True
+            logging.info(f"Worker is processing message: '{request.text}'. This will take 10 seconds.")
+            time.sleep(10)
 
-        return slackbot_pb2.MessageResponse(reply_text=reply_text, should_reply=should_reply)
+            final_reply_text = f"Hi there, <@{request.user}>! I have finished processing your message."
 
+            send_final_reply(
+                channel=request.channel,
+                thread_ts=request.thread_ts,
+                text=final_reply_text
+            )
 
-# --- Start the Server ---
+        except Exception as e:
+            logging.error(f"Error processing message from queue: {e}")
+        finally:
+            message_queue.task_done()
+
+class ProcessorServicer(slackbot_pb2_grpc.ProcessorServicer):
+    """
+    Implements the Processor gRPC service.
+    """
+    def ProcessMessage(self, request, context):
+        """
+        Receives a message from the gateway, adds it to the queue,
+        and returns an immediate acknowledgment.
+        """
+        logging.info(f"Processor service received message: '{request.text}' and adding it to the queue.")
+        message_queue.put(request)
+        return slackbot_pb2.ProcessResponse()
+
 def serve():
     """
-    Starts the gRPC server and waits for requests.
+    Starts the gRPC server and the background worker thread.
     """
+
+    worker_thread = threading.Thread(target=process_message_queue)
+    worker_thread.daemon = True
+    worker_thread.start()
+    
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    slackbot_pb2_grpc.add_SlackBotServicer_to_server(SlackBotServicer(), server)
+    slackbot_pb2_grpc.add_ProcessorServicer_to_server(ProcessorServicer(), server)
     
     port = "50051"
     server.add_insecure_port(f"[::]:{port}")
     
-    print(f"✅ gRPC server started and listening on port {port}...")
-    logging.info(f"gRPC server listening on port {port}")
+    print(f"✅ Processing server started and listening on port {port}...")
+    logging.info(f"gRPC Processor server listening on port {port}")
     
     server.start()
     server.wait_for_termination()
-
 
 if __name__ == "__main__":
     serve()
