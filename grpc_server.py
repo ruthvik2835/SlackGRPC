@@ -36,14 +36,14 @@ def send_final_reply(channel, thread_ts, text):
     except grpc.RpcError as e:
         logging.error(f"gRPC Error: Could not send final reply to gateway. {e}")
 
-# --- Worker Thread ---
+
 def process_message_queue():
     """
     Worker function that processes messages from the queue.
     """
     while True:
         try:
-            # Get a message from the queue. This is a ProcessRequest object.
+
             request = message_queue.get() 
             
             logging.info(f"Worker is processing message: '{request.text}'. This will take 10 seconds.")

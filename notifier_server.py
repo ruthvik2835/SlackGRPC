@@ -5,14 +5,14 @@ import sys
 from concurrent import futures
 
 import grpc
-from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError
+
+from slack import WebClient
+from slack.errors import SlackApiError
 from dotenv import load_dotenv
 
 import slackbot_pb2
 import slackbot_pb2_grpc
 
-# --- Configuration & Initialization ---
 load_dotenv()
 
 logging.basicConfig(
@@ -21,8 +21,9 @@ logging.basicConfig(
     stream=sys.stdout
 )
 
-# Slack client to post messages
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+# Correct initialization for slackclient v2+
 slack_client = WebClient(token=BOT_TOKEN)
 
 # Port for this gRPC server
@@ -39,13 +40,20 @@ class NotifierServicer(slackbot_pb2_grpc.NotifierServicer):
         """
         logging.info(f"Notifier service received callback to post reply in channel {request.channel}")
         try:
-            slack_client.chat_postMessage(
-                channel=request.channel,
-                thread_ts=request.thread_ts,
-                text=request.text
+            data = {
+                    "channel": request.channel,
+                    "thread_ts": request.thread_ts,
+                    "text": request.text
+                }
+
+            slack_client.api_call(
+                api_method="chat.postMessage",
+                json=data
             )
-            logging.info("NOTIFIER: Successfully posted final reply to Slack.")
+
+            logging.info(f"NOTIFIER: Successfully posted DATA ====>>> {data}")
             return slackbot_pb2.ReplyResponse(ok=True)
+        # Use the specific error class for better error handling
         except SlackApiError as e:
             logging.error(f"Failed to post Slack message via notifier: {e.response['error']}")
             return slackbot_pb2.ReplyResponse(ok=False)
